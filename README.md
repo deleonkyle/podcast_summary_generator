@@ -4,7 +4,7 @@ A simple Streamlit application that allows users to transcribe podcast audio fil
 
 ## Features
 
-- **Audio Upload**: Upload audio files in MP3, WAV, or M4A formats.
+- **Audio Upload**: Upload audio files in WAV format.
 - **Podcast Link**: Enter a link to download audio directly from a podcast.
 - **Transcription**: Automatically transcribes the audio to text using Google Speech Recognition.
 - **Summarization**: Generates an extractive summary of the transcribed text, allowing users to choose the number of sentences and summary style (paragraph or bullet points).
