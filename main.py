@@ -9,15 +9,16 @@ from collections import defaultdict
 # Load the spaCy model
 nlp = spacy.load('en_core_web_sm')
 
-# Set the path for FFmpeg (if needed)
-os.environ["PATH"] += os.pathsep + r"D:\ffmpeg\bin"
-
 def download_audio(link):
-    """Download audio from a given podcast link."""
+    """Download audio from a given podcast link and convert it to .wav format."""
     try:
         ydl_opts = {
             'format': 'bestaudio/best',
             'outtmpl': 'downloaded_audio.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+            }],
             'verbose': True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -28,12 +29,10 @@ def download_audio(link):
         return None
 
 def transcribe_audio(file_path):
-    """Transcribe audio from the given file path."""
+    """Transcribe audio from a .wav file."""
     try:
         recognizer = sr.Recognizer()
-        audio = AudioSegment.from_file(file_path)
-        audio.export("temp.wav", format="wav")
-        with sr.AudioFile("temp.wav") as source:
+        with sr.AudioFile(file_path) as source:
             audio_data = recognizer.record(source)
             text = recognizer.recognize_google(audio_data)
         return text
@@ -47,7 +46,7 @@ def summarize_text(text, num_sentences=3, style="paragraph"):
         doc = nlp(text)
         sentences = list(doc.sents)
         word_frequencies = defaultdict(int)
-        
+
         for token in doc:
             if token.is_alpha:
                 word_frequencies[token.text.lower()] += 1
@@ -85,18 +84,17 @@ def main():
     input_method = st.radio("Select input method:", ("Upload Audio File", "Enter Podcast Link"))
 
     if input_method == "Upload Audio File":
-        audio_file = st.file_uploader("Upload an audio file", type=["mp3", "wav", "m4a"])
+        audio_file = st.file_uploader("Upload a .wav audio file", type=["wav"])
         
         if audio_file is not None:
-            uploaded_file_path = f"uploaded_audio.{audio_file.name.split('.')[-1]}"
-            with open(uploaded_file_path, "wb") as f:
+            with open("uploaded_audio.wav", "wb") as f:
                 f.write(audio_file.getbuffer())
             
-            st.audio(uploaded_file_path)
+            st.audio("uploaded_audio.wav")
 
             st.write("### Transcription")
             with st.spinner("Transcribing... Please wait."):
-                text = transcribe_audio(uploaded_file_path)
+                text = transcribe_audio("uploaded_audio.wav")
             
             if text:
                 st.text_area("Transcribed Text", text, height=300)
@@ -119,9 +117,7 @@ def main():
                 if st.button("Submit Feedback"):
                     st.success("Thank you for your feedback!")
 
-            os.remove(uploaded_file_path)
-            if os.path.exists("temp.wav"):
-                os.remove("temp.wav")
+            os.remove("uploaded_audio.wav")
 
     elif input_method == "Enter Podcast Link":
         podcast_link = st.text_input("Enter the podcast link:")
@@ -160,8 +156,7 @@ def main():
                         if st.button("Submit Feedback"):
                             st.success("Thank you for your feedback!")
 
-                    if os.path.exists(audio_file_path):
-                        os.remove(audio_file_path)
+                    os.remove(audio_file_path)
 
     st.sidebar.header("Help")
     st.sidebar.write("### How to Use This App")
